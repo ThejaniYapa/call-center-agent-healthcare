@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional, cast
 
 import typer
+from langchain_core.runnables import RunnableConfig
 from rich import print
 
-from src.agent.graph import build_graph
+from src.agent.graph import AgentState, build_graph
 from src.agent.memory import get_checkpointer
-from src.config.settings import get_settings
-from src.index_docs import main as index_main
-from src.tools.human import human_confirm
+from src.index_docs import run_index
 
 
 app = typer.Typer(add_completion=False)
@@ -21,11 +19,10 @@ app = typer.Typer(add_completion=False)
 @app.command()
 def serve_mcp():
     """Run the MCP Mongo server (stdio)."""
-    from src.mcp.mongo_server import amain
-    import anyio
+    from src.mcp.mongo_server import mcp
 
     print("[bold cyan]Starting MCP Mongo server (stdio)...[/]")
-    anyio.run(amain)
+    mcp.run()
 
 
 @app.command()
@@ -38,8 +35,9 @@ def seed_mongo():
 @app.command()
 def index(docs: str = typer.Option("src/data/docs", help="Docs directory"),
           out: str = typer.Option("data/faiss", help="FAISS index output directory")):
-    index_main.callback = None  # silence Typer re-entry issues
-    index_main(docs=docs, out=out)
+    docs_path = Path(docs)
+    out_path = Path(out)
+    run_index(docs_path, out_path)
 
 
 @app.command()
@@ -47,20 +45,24 @@ def chat(caller_profile: Optional[Path] = typer.Option(None, exists=True),
          session_id: str = typer.Option("default-session"),
          query: Optional[str] = typer.Option(None, help="Single-turn query; if omitted, enters interactive mode.")):
     """Chat with the agent. Uses FAISS + MCP + prompts + memory."""
-    settings = get_settings()
     graph = build_graph()
     checkpointer = get_checkpointer()
 
-    caller = {}
+    caller: Dict[str, Any] = {}
     if caller_profile:
         caller = json.loads(Path(caller_profile).read_text(encoding="utf-8"))
 
-    def run_once(user_text: str):
-        state = {
+    def run_once(user_text: str) -> None:
+        state: AgentState = {
             "messages": [{"type": "human", "content": user_text}],
             "caller_profile": caller,
         }
-        result = graph.invoke(state, config={"configurable": {"thread_id": session_id}, "checkpointer": checkpointer})
+        graph_config: RunnableConfig = {"configurable": {"thread_id": session_id}}
+        if checkpointer is not None:
+            extended_config: Dict[str, Any] = dict(graph_config)
+            extended_config["checkpointer"] = checkpointer
+            graph_config = cast(RunnableConfig, extended_config)
+        result = cast(AgentState, graph.invoke(state, config=graph_config))
         print("\n[bold green]Agent:[/]\n" + result.get("answer", "(no answer)"))
 
     if query:

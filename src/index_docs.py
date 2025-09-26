@@ -9,16 +9,19 @@ from src.tools.retriever import build_faiss_index
 app = typer.Typer(add_completion=False)
 
 
+def run_index(docs_path: Path, out_path: Path) -> None:
+    print(f"[bold cyan]Building FAISS index[/] from {docs_path} -> {out_path}")
+    build_faiss_index(docs_path, out_path)
+    print("[green]Done.[/]")
+
+
 @app.command()
 def main(docs: str = typer.Option("src/data/docs", help="Docs directory"),
          out: str = typer.Option("data/faiss", help="FAISS index output directory")):
     docs_p = Path(docs)
     out_p = Path(out)
-    print(f"[bold cyan]Building FAISS index[/] from {docs_p} -> {out_p}")
-    build_faiss_index(docs_p, out_p)
-    print("[green]Done.[/]")
+    run_index(docs_p, out_p)
 
 
 if __name__ == "__main__":
     app()
-

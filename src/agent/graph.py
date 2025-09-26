@@ -75,12 +75,12 @@ def node_mongo_mcp(state: AgentState) -> AgentState:
     if any((isinstance(s, dict) and s.get("action") == "MCP_LOOKUP") or s == "MCP_LOOKUP" for s in steps):
         if "phone" in caller:
             try:
-                result["customer"] = mcp_get_customer_by_phone(caller.get("phone"))
+                result["customer"] = mcp_get_customer_by_phone(str(caller.get("phone")))
             except Exception as e:
                 result["error"] = f"MCP get_customer_by_phone failed: {e}"
         if "policy_number" in caller:
             try:
-                result["policy"] = mcp_get_policy_by_number(caller.get("policy_number"))
+                result["policy"] = mcp_get_policy_by_number(str(caller.get("policy_number")))
             except Exception as e:
                 result.setdefault("error", str(e))
     return {**state, "mcp": result}
@@ -98,9 +98,10 @@ def node_summarize(state: AgentState) -> AgentState:
             break
     context_parts: List[str] = []
     if state.get("retrieved"):
-        context_parts.append("Knowledge base excerpts:\n" + "\n---\n".join([d["content"][:1000] for d in state["retrieved"]]))
+        retrieved=state.get("retrieved",[])
+        context_parts.append("Knowledge base excerpts:\n" + "\n---\n".join([d["content"][:1000] for d in retrieved]))
     if state.get("mcp"):
-        context_parts.append("Caller data (MCP):\n" + json.dumps(state["mcp"], indent=2))
+        context_parts.append("Caller data (MCP):\n" + json.dumps(state.get("mcp"), indent=2))
     context = "\n\n".join(context_parts) or "(no extra context)"
 
     prompt = ChatPromptTemplate.from_messages([
