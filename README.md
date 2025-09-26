@@ -119,3 +119,12 @@ python -m src.cli eval
 - Human interactions: `HumanConfirmTool` prompts user for approval/inputs mid-execution.
 - Evaluation: `src/eval/run_eval.py` runs scenarios and computes simple metrics or LLM-as-judge if configured.
 
+## Streamlit UI
+
+To demo the agent with live tracing, install the dependencies and run:
+
+```
+streamlit run streamlit_app.py
+```
+
+The app streams the planner output, tool calls (retrieval + MCP), and final synthesis so you can follow each step in the browser. Use the sidebar to load a caller profile JSON and reset the session.
