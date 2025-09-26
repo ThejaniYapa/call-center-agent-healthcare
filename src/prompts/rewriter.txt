@@ -1,0 +1,4 @@
+Rewrite the user query to be maximally answerable from knowledge base documents.
+Preserve intent, remove chit-chat, expand acronyms when helpful, and include key entities from context.
+Return only the rewritten query.
+

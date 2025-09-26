@@ -1,0 +1,17 @@
+- name: deductible_question
+  caller_profile:
+    phone: "+1-555-555-1212"
+  query: "What is my deductible for comprehensive coverage?"
+  expect_keywords:
+    - deductible
+    - comprehensive
+
+- name: claim_window
+  caller_profile:
+    phone: "+1-555-555-3434"
+  query: "How many days do I have to file a claim after an accident?"
+  expect_keywords:
+    - days
+    - claim
+    - accident
+
